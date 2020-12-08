@@ -27,6 +27,9 @@ var template = fs.readFileSync(
 var searchConfig = JSON.parse(
   fs.readFileSync(__dirname + '/process-instance-search-config.json', 'utf8')
 );
+var debouncePromiseFactory = require('camunda-bpm-sdk-js').utils
+  .debouncePromiseFactory;
+const debouncePromise = debouncePromiseFactory();
 
 module.exports = [
   'ViewsProvider',
@@ -108,10 +111,14 @@ module.exports = [
               .$promise.then(function(data) {
                 var total = data.count;
 
-                return PluginProcessInstanceResource.query(pagingParams, params)
-                  .$promise.then(function(data) {
+                return debouncePromise(
+                  PluginProcessInstanceResource.query(pagingParams, params)
+                    .$promise
+                )
+                  .then(function(data) {
                     $scope.processInstances = data;
                     $scope.loadingState = data.length ? 'LOADED' : 'EMPTY';
+                    $scope.$apply();
                     return total;
                   })
                   .catch(angular.noop);

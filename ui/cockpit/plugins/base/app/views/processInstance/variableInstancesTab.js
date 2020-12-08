@@ -35,6 +35,10 @@ var instancesTemplate = fs.readFileSync(
 var inspectTemplate = require('../../../../../client/scripts/components/variables/variable-inspect-dialog');
 var uploadTemplate = require('../../../../../client/scripts/components/variables/variable-upload-dialog');
 
+var debouncePromiseFactory = require('camunda-bpm-sdk-js').utils
+  .debouncePromiseFactory;
+const debouncePromise = debouncePromiseFactory();
+
 module.exports = function(ngModule) {
   ngModule.controller('VariableInstancesController', [
     '$scope',
@@ -416,8 +420,7 @@ module.exports = function(ngModule) {
           .then(function(response) {
             $scope.total = response.count;
             // get variables objects
-            return variableService
-              .instances(params)
+            return debouncePromise(variableService.instances(params))
               .then(function(response) {
                 var data = response;
 
@@ -468,6 +471,7 @@ module.exports = function(ngModule) {
                   };
                 });
                 $scope.loadingState = data.length ? 'LOADED' : 'EMPTY';
+                $scope.$apply();
                 return $scope.total;
               })
               .catch(angular.noop);
